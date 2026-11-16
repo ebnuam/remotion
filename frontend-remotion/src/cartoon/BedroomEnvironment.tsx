@@ -7,6 +7,10 @@ interface BedroomEnvironmentProps {
   clockMinute?: number;
   isNight?: boolean;
   layer?: "all" | "background" | "foreground";
+  phoneOnDesk?: boolean;
+  phoneVibrating?: boolean;
+  laptopAlert?: boolean;
+  clockRinging?: boolean;
 }
 
 export const BedroomEnvironment: React.FC<BedroomEnvironmentProps> = ({
@@ -15,6 +19,10 @@ export const BedroomEnvironment: React.FC<BedroomEnvironmentProps> = ({
   clockMinute = 58,
   isNight = true,
   layer = "all",
+  phoneOnDesk = false,
+  phoneVibrating = false,
+  laptopAlert = false,
+  clockRinging = false,
 }) => {
   const frame = useCurrentFrame();
 
@@ -312,6 +320,25 @@ export const BedroomEnvironment: React.FC<BedroomEnvironmentProps> = ({
                 <path d="M 14 14 Q 22 4 16 -6" stroke="#FFFFFF" strokeWidth="2.5" fill="none" opacity="0.4" strokeLinecap="round" />
               </g>
 
+              {/* Smartphone on desk (reactive prop when character is not holding it) */}
+              {phoneOnDesk && (
+                <g
+                  transform={`translate(185, 125) rotate(${phoneVibrating ? Math.sin(frame * 4) * 5 : 10})`}
+                >
+                  {/* Phone Case */}
+                  <rect x="0" y="0" width="34" height="60" rx="6" fill="#0F172A" stroke="#334155" strokeWidth="2" />
+                  {/* Glowing Screen */}
+                  <rect x="3" y="4" width="28" height="52" rx="4" fill="#38BDF8" opacity={phoneVibrating ? (frame % 8 < 4 ? 0.95 : 0.6) : 0.85} />
+                  {/* Notification ripple wave if vibrating */}
+                  {phoneVibrating && (
+                    <>
+                      <circle cx="17" cy="30" r={(frame * 2.5) % 30} stroke="#38BDF8" strokeWidth="2" fill="none" opacity={Math.max(0, 1 - ((frame * 2.5) % 30) / 30)} />
+                      <circle cx="26" cy="8" r="4.5" fill="#EF4444" />
+                    </>
+                  )}
+                </g>
+              )}
+
               {/* Pen Holder */}
               <g transform="translate(490, 95)">
                 <rect x="0" y="35" width="38" height="45" rx="6" fill="#3B82F6" />
@@ -334,18 +361,33 @@ export const BedroomEnvironment: React.FC<BedroomEnvironmentProps> = ({
                   width="154"
                   height="134"
                   rx="4"
-                  fill="#F8FAFC"
-                  opacity={laptopGlow}
+                  fill={laptopAlert ? "#EF4444" : "#F8FAFC"}
+                  opacity={laptopAlert ? (frame % 10 < 5 ? 0.95 : 0.75) : laptopGlow}
                 />
 
-                {/* Editor Content Mockup */}
-                <rect x="22" y="-25" width="136" height="15" rx="3" fill="#3B82F6" />
-                <rect x="22" y="2" width="100" height="6" rx="2" fill="#94A3B8" />
-                <rect x="22" y="16" width="125" height="6" rx="2" fill="#94A3B8" />
-                <rect x="22" y="30" width="80" height="6" rx="2" fill="#94A3B8" />
-                <rect x="22" y="44" width="115" height="6" rx="2" fill="#94A3B8" />
-                {/* Cursor */}
-                <rect x="106" y="30" width="3" height="8" fill="#EF4444" opacity={(frame % 20) < 10 ? 1 : 0} />
+                {laptopAlert ? (
+                  /* Emergency Alert Screen */
+                  <g>
+                    <rect x="25" y="-15" width="130" height="25" rx="4" fill="#FFFFFF" />
+                    <text x="90" y="3" textAnchor="middle" fill="#EF4444" fontSize="16" fontWeight="900" fontFamily="sans-serif">
+                      DEADLINE!
+                    </text>
+                    <text x="90" y="45" textAnchor="middle" fill="#FFFFFF" fontSize="24" fontWeight="900" fontFamily="sans-serif">
+                      23:59
+                    </text>
+                  </g>
+                ) : (
+                  /* Editor Content Mockup */
+                  <g>
+                    <rect x="22" y="-25" width="136" height="15" rx="3" fill="#3B82F6" />
+                    <rect x="22" y="2" width="100" height="6" rx="2" fill="#94A3B8" />
+                    <rect x="22" y="16" width="125" height="6" rx="2" fill="#94A3B8" />
+                    <rect x="22" y="30" width="80" height="6" rx="2" fill="#94A3B8" />
+                    <rect x="22" y="44" width="115" height="6" rx="2" fill="#94A3B8" />
+                    {/* Cursor */}
+                    <rect x="106" y="30" width="3" height="8" fill="#EF4444" opacity={(frame % 20) < 10 ? 1 : 0} />
+                  </g>
+                )}
 
                 {/* Screen Reflection Light Beam */}
                 <polygon points="13,97 -35,145 215,145 167,97" fill="#38BDF8" opacity="0.22" />

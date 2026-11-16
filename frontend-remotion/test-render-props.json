@@ -1,0 +1,11 @@
+{
+  "post": {
+    "dpr": 0.5,
+    "ink": true,
+    "lens": true,
+    "pre": true,
+    "bloom": true,
+    "grade": true,
+    "grain": false
+  }
+}

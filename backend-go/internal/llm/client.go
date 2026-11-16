@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -15,23 +16,33 @@ import (
 )
 
 type LLMClient struct {
-	client *openai.Client
-	model  string
+	client         *openai.Client
+	fallbackClient *openai.Client
+	model          string
 }
 
 func NewLLMClient(cfg *config.Config) *LLMClient {
 	clientConfig := openai.DefaultConfig(cfg.LLMAPIKey)
 	clientConfig.BaseURL = cfg.LLMBaseURL
 
+	var fallbackClient *openai.Client
+	if strings.Contains(cfg.LLMAPIKey, "#") {
+		baseKey := strings.Split(cfg.LLMAPIKey, "#")[0]
+		fbConfig := openai.DefaultConfig(baseKey)
+		fbConfig.BaseURL = cfg.LLMBaseURL
+		fallbackClient = openai.NewClientWithConfig(fbConfig)
+	}
+
 	return &LLMClient{
-		client: openai.NewClientWithConfig(clientConfig),
-		model:  cfg.LLMModel,
+		client:         openai.NewClientWithConfig(clientConfig),
+		fallbackClient: fallbackClient,
+		model:          cfg.LLMModel,
 	}
 }
 
 // GenerateScript prompts AGYBridge to produce a structured video script tailored to the channel's visual identity
 func (l *LLMClient) GenerateScript(ctx context.Context, ch *channel.ChannelConfig, topic string) (*script.ScriptData, error) {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
 	defer cancel()
 
 	styleGuide := "Cinematic 2D Motion Graphics"
@@ -74,6 +85,11 @@ Kamu menyutradarai setiap frame seperti film animasi pendek:
 6. 'environment': "bedroom_night", "office_desk", "cafe", "abstract_dopamine".
 7. 'props': Array objek konkret seperti ["laptop", "smartphone", "clock", "coffee_cup", "calendar"].
 8. 'headline_line1' & 'headline_line2': Teks judul tebal kapital yang menonjol dan langsung terbaca dalam 1 detik.
+9. 'action_sequence' (SANGAT PENTING UNTUK ADENGAN BERAKSI):
+   Setiap adegan berdurasi 4-5 detik BUKAN gambar diam! Untuk adegan (terutama 'character_action'), sutradarai minimal 3 tahapan aksi berurutan ('action_sequence') dengan perkembangan visual yang jelas:
+   - Beat 1: Keadaan awal (start_progress: 0.0, duration_progress: 0.35), misal: duduk santai scrolling HP, expression: "relaxed".
+   - Beat 2: Interaksi objek / kesadaran (start_progress: 0.35, duration_progress: 0.35), misal: meraih cangkir kopi / menoleh ke jam / HP bergetar, expression: "alert" atau "curious", prop_interaction: "phone_buzz" atau "lift_mug".
+   - Beat 3: Reaksi klimaks / perubahan pose (start_progress: 0.70, duration_progress: 0.30), misal: tersentak kaget tangan memegang kepala atau buru-buru ngetik, pose: "startled_hands" atau "sitting_typing_panic", expression: "shocked" atau "panic", camera_movement: "zoom_in" atau "shake".
 
 ATURAN KOMPOSISI SINEMATIK (SANGAT PENTING):
 1. Setiap video berdurasi 15 detik (4 adegan) WAJIB memiliki MINIMAL 3 JENIS 'composition' BERBEDA!
@@ -114,6 +130,44 @@ FORMAT JSON:
       "character_action": "sitting_bored",
       "expression": "bored",
       "props": ["laptop", "coffee_cup"],
+      "action_sequence": [
+        {
+          "beat_index": 1,
+          "start_progress": 0.0,
+          "duration_progress": 0.35,
+          "target": "character",
+          "action": "sitting_phone",
+          "pose": "sitting_phone",
+          "expression": "relaxed",
+          "prop_interaction": "holding_phone",
+          "camera_movement": "drift",
+          "description": "Karakter santai scrolling medsos"
+        },
+        {
+          "beat_index": 2,
+          "start_progress": 0.35,
+          "duration_progress": 0.35,
+          "target": "props",
+          "action": "glance_clock",
+          "pose": "reach_prop",
+          "expression": "alert",
+          "prop_interaction": "phone_buzz",
+          "camera_movement": "pan_props",
+          "description": "HP bergetar notif dan karakter melirik jam dinding"
+        },
+        {
+          "beat_index": 3,
+          "start_progress": 0.70,
+          "duration_progress": 0.30,
+          "target": "character",
+          "action": "startle",
+          "pose": "startled_hands",
+          "expression": "panic",
+          "prop_interaction": "laptop_alert",
+          "camera_movement": "zoom_in",
+          "description": "Karakter tersentak panik melihat waktu sudah mepet"
+        }
+      ],
       "foreground": "meja dengan cangkir kopi mengepul",
       "midground": "karakter menopang dagu menatap layar laptop",
       "background": "dinding kamar malam dengan jendela bulan",
@@ -147,6 +201,10 @@ FORMAT JSON:
 	}
 
 	resp, err := l.client.CreateChatCompletion(ctx, req)
+	if err != nil && l.fallbackClient != nil && (strings.Contains(err.Error(), "credentials") || strings.Contains(err.Error(), "500")) {
+		log.Println("[WARN] Account credential error on AGYBridge proxy. Retrying with active bridge session...")
+		resp, err = l.fallbackClient.CreateChatCompletion(ctx, req)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("AGYBridge request failed: %w", err)
 	}

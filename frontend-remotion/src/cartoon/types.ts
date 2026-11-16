@@ -1,10 +1,19 @@
-export type CharacterExpression = "bored" | "relaxed" | "shocked" | "panic";
+export type CharacterExpression =
+  | "bored"
+  | "relaxed"
+  | "shocked"
+  | "panic"
+  | "curious"
+  | "alert"
+  | "smug";
 
 export type CharacterPose =
   | "sitting_bored"
   | "sitting_phone"
   | "lying_bed"
-  | "sitting_typing_panic";
+  | "sitting_typing_panic"
+  | "reach_prop"
+  | "startled_hands";
 
 export type CameraShotType =
   | "WIDE_ROOM"

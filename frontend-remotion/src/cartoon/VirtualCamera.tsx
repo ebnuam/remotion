@@ -4,6 +4,12 @@ import { CameraShotType } from "./types";
 
 interface VirtualCameraProps {
   shotType: CameraShotType;
+  customTransform?: {
+    scale?: number;
+    x?: number;
+    y?: number;
+    shakeIntensity?: number;
+  };
   children: React.ReactNode;
 }
 
@@ -55,20 +61,25 @@ export const SHOT_PRESETS: Record<CameraShotType, CameraTransform> = {
 
 export const VirtualCamera: React.FC<VirtualCameraProps> = ({
   shotType,
+  customTransform,
   children,
 }) => {
   const frame = useCurrentFrame();
 
-  const target = SHOT_PRESETS[shotType] || SHOT_PRESETS.WIDE_ROOM;
+  const preset = SHOT_PRESETS[shotType] || SHOT_PRESETS.WIDE_ROOM;
+  const scale = customTransform?.scale ?? preset.scale;
+  const x = customTransform?.x ?? preset.x;
+  const y = customTransform?.y ?? preset.y;
+  const shakeIntensity = customTransform?.shakeIntensity ?? preset.shakeIntensity;
 
   // High-frequency comic camera shake during panic / shock
   const shakeX =
-    target.shakeIntensity > 0
-      ? Math.sin(frame * 2.7) * target.shakeIntensity
+    shakeIntensity > 0
+      ? Math.sin(frame * 2.7) * shakeIntensity
       : 0;
   const shakeY =
-    target.shakeIntensity > 0
-      ? Math.cos(frame * 3.1) * (target.shakeIntensity * 0.8)
+    shakeIntensity > 0
+      ? Math.cos(frame * 3.1) * (shakeIntensity * 0.8)
       : 0;
 
   return (
@@ -88,7 +99,7 @@ export const VirtualCamera: React.FC<VirtualCameraProps> = ({
           height: 1920,
           position: "absolute",
           transformOrigin: "540px 960px",
-          transform: `scale(${target.scale}) translate(${target.x + shakeX}px, ${target.y + shakeY}px)`,
+          transform: `scale(${scale}) translate(${x + shakeX}px, ${y + shakeY}px)`,
         }}
       >
         {children}

@@ -6,12 +6,20 @@ interface CartoonCharacterProps {
   pose: CharacterPose;
   expression: CharacterExpression;
   isNight?: boolean;
+  armProgress?: number;
+  headTiltAngle?: number;
+  gazeDirection?: { x: number; y: number };
+  bodyLeanAngle?: number;
 }
 
 export const CartoonCharacter: React.FC<CartoonCharacterProps> = ({
   pose,
   expression,
   isNight = true,
+  armProgress = 0,
+  headTiltAngle,
+  gazeDirection,
+  bodyLeanAngle,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -52,30 +60,59 @@ export const CartoonCharacter: React.FC<CartoonCharacterProps> = ({
   let gazeY = 0;
   let bodyLean = 0; // Body weight shift angle
 
-  if (pose === "sitting_bored") {
-    // Slouched posture, head resting tilted on left hand, looking down-left at laptop
+  if (headTiltAngle !== undefined) {
+    headTilt = headTiltAngle;
+  } else if (pose === "sitting_bored") {
     headTilt = 14 + Math.sin(frame * 0.08) * 2;
+  } else if (pose === "sitting_phone") {
+    headTilt = 16 + Math.sin(frame * 0.1) * 1.5;
+  } else if (pose === "lying_bed") {
+    headTilt = -18;
+  } else if (pose === "sitting_typing_panic") {
+    headTilt = Math.sin(frame * 1.8) * 6;
+  } else if (pose === "startled_hands") {
+    headTilt = Math.sin(frame * 1.2) * 4;
+  } else if (pose === "reach_prop") {
+    headTilt = 8;
+  }
+
+  if (gazeDirection !== undefined) {
+    gazeX = gazeDirection.x;
+    gazeY = gazeDirection.y;
+  } else if (pose === "sitting_bored") {
     gazeX = -4;
     gazeY = 5;
-    bodyLean = -2.5;
   } else if (pose === "sitting_phone") {
-    // Sitting back slightly, head angled down toward phone in hands, eyes looking down
-    headTilt = 16 + Math.sin(frame * 0.1) * 1.5;
     gazeX = 1;
     gazeY = 7;
-    bodyLean = 1.5;
   } else if (pose === "lying_bed") {
-    // Lying down comfortably, looking straight up at phone
-    headTilt = -18;
     gazeX = 0;
     gazeY = -4;
-    bodyLean = 0;
   } else if (pose === "sitting_typing_panic") {
-    // Hunched forward over laptop, frantic rapid head bobbing, eyes wide
-    headTilt = Math.sin(frame * 1.8) * 6;
     gazeX = Math.sin(frame * 0.9) * 3;
     gazeY = 3;
+  } else if (pose === "startled_hands") {
+    gazeX = 0;
+    gazeY = 0;
+  } else if (pose === "reach_prop") {
+    gazeX = 4;
+    gazeY = -2;
+  }
+
+  if (bodyLeanAngle !== undefined) {
+    bodyLean = bodyLeanAngle;
+  } else if (pose === "sitting_bored") {
+    bodyLean = -2.5;
+  } else if (pose === "sitting_phone") {
+    bodyLean = 1.5;
+  } else if (pose === "lying_bed") {
+    bodyLean = 0;
+  } else if (pose === "sitting_typing_panic") {
     bodyLean = 3.5;
+  } else if (pose === "startled_hands") {
+    bodyLean = -2.5;
+  } else if (pose === "reach_prop") {
+    bodyLean = 3.0;
   }
 
   return (
@@ -432,6 +469,31 @@ export const CartoonCharacter: React.FC<CartoonCharacterProps> = ({
             </g>
           )}
 
+          {/* 5. ALERT / CURIOUS EXPRESSION (Questioning brows, observant pupils, parted mouth) */}
+          {(expression === "alert" || expression === "curious") && (
+            <g id="exp-alert">
+              {/* Eyebrows: One raised inquisitively, one slightly furrowed */}
+              <path d="M 205 116 Q 235 112 250 120" stroke="#25140C" strokeWidth="6.5" strokeLinecap="round" fill="none" />
+              <path d="M 335 125 Q 305 122 290 128" stroke="#25140C" strokeWidth="6.5" strokeLinecap="round" fill="none" />
+
+              {/* Eyes: Focused observant pupils with reflection */}
+              <g transform="translate(228, 145)">
+                <ellipse cx="0" cy="0" rx="17" ry="19" fill="#FFFFFF" stroke="#25140C" strokeWidth="3" />
+                <circle cx={gazeX} cy={gazeY} r="8.5" fill="#25140C" />
+                <circle cx={gazeX + 2.5} cy={gazeY - 2.5} r="3" fill="#FFFFFF" />
+              </g>
+              <g transform="translate(312, 145)">
+                <ellipse cx="0" cy="0" rx="17" ry="19" fill="#FFFFFF" stroke="#25140C" strokeWidth="3" />
+                <circle cx={gazeX} cy={gazeY} r="8.5" fill="#25140C" />
+                <circle cx={gazeX + 2.5} cy={gazeY - 2.5} r="3" fill="#FFFFFF" />
+              </g>
+
+              {/* Small parted mouth of realization */}
+              <ellipse cx="270" cy="192" rx="9" ry="11" fill="#450A0A" stroke="#25140C" strokeWidth="3.5" />
+              <ellipse cx="270" cy="190" rx="6" ry="6" fill="#EF4444" />
+            </g>
+          )}
+
           {/* Detailed Styled Cartoon Hair with highlights & volume */}
           <g id="hair-group">
             <path
@@ -604,6 +666,61 @@ export const CartoonCharacter: React.FC<CartoonCharacterProps> = ({
             <line x1="245" y1="440" x2="245" y2="470" stroke="#FFFFFF" strokeWidth="3" opacity="0.6" strokeDasharray="5 3" />
             <line x1="295" y1="440" x2="295" y2="470" stroke="#FFFFFF" strokeWidth="3" opacity="0.6" strokeDasharray="5 3" />
             <line x1="335" y1="435" x2="335" y2="465" stroke="#FFFFFF" strokeWidth="3" opacity="0.6" strokeDasharray="5 3" />
+          </g>
+        )}
+
+        {/* POSE 5: REACH PROP (Reaching out toward coffee cup, phone, or laptop) */}
+        {pose === "reach_prop" && (
+          <g id="arms-reach-prop">
+            {/* Left Arm: Resting supportively on desk */}
+            <path
+              d="M 150 280 C 115 370, 130 460, 165 490 L 210 470 C 175 420, 175 350, 195 285 Z"
+              fill="url(#charHoodieMain)"
+            />
+            <ellipse cx="170" cy="495" rx="18" ry="15" fill="url(#charSkinGrad)" />
+
+            {/* Right Arm: Extending forward smoothly according to armProgress */}
+            <g transform={`translate(${interpolate(armProgress, [0, 1], [0, 45])}, ${interpolate(armProgress, [0, 1], [0, 20])})`}>
+              <path
+                d="M 390 280
+                   C 430 360, 420 420, 380 460
+                   L 330 440
+                   C 360 380, 365 330, 345 285 Z"
+                fill="url(#charHoodieMain)"
+              />
+              {/* Reaching Forearm */}
+              <path
+                d={`M 380 460 Q ${interpolate(armProgress, [0, 1], [400, 430])} ${interpolate(armProgress, [0, 1], [480, 500])} ${interpolate(armProgress, [0, 1], [390, 420])} ${interpolate(armProgress, [0, 1], [500, 525])} L 340 470 Z`}
+                fill="url(#charHoodieDark)"
+              />
+              {/* Reaching Hand with extended grasping fingers */}
+              <g transform={`translate(${interpolate(armProgress, [0, 1], [390, 420])}, ${interpolate(armProgress, [0, 1], [500, 525])}) rotate(${interpolate(armProgress, [0, 1], [-10, 25])})`}>
+                <ellipse cx="0" cy="0" rx="20" ry="16" fill="url(#charSkinGrad)" />
+                {/* Extended fingers reaching forward */}
+                <rect x="-4" y="10" width="8" height="18" rx="4" fill="url(#charSkinGrad)" />
+                <rect x="6" y="8" width="8" height="20" rx="4" fill="url(#charSkinGrad)" />
+                <rect x="16" y="6" width="7" height="17" rx="3.5" fill="url(#charSkinGrad)" />
+              </g>
+            </g>
+          </g>
+        )}
+
+        {/* POSE 6: STARTLED HANDS (Sudden shock reflex, hands fly up to cheeks/head) */}
+        {pose === "startled_hands" && (
+          <g id="arms-startled">
+            {/* Left Arm: Shoots up to left cheek */}
+            <path
+              d="M 150 280 C 90 240, 110 180, 175 220 L 205 250 C 160 230, 140 280, 195 285 Z"
+              fill="url(#charHoodieMain)"
+            />
+            <ellipse cx="185" cy="215" rx="22" ry="18" fill="url(#charSkinGrad)" stroke="#D2925F" strokeWidth="2" />
+
+            {/* Right Arm: Shoots up to right cheek */}
+            <path
+              d="M 390 280 C 450 240, 430 180, 365 220 L 335 250 C 380 230, 400 280, 345 285 Z"
+              fill="url(#charHoodieMain)"
+            />
+            <ellipse cx="355" cy="215" rx="22" ry="18" fill="url(#charSkinGrad)" stroke="#D2925F" strokeWidth="2" />
           </g>
         )}
       </svg>

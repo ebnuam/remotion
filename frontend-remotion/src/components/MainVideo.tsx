@@ -217,6 +217,7 @@ export const MainVideo: React.FC<RenderProps> = ({
         if (comp === "character_action" || comp === "character" || channel_id === "otak-receh") {
           return (
             <CharacterActionScene
+              actionSequence={activeScene.action_sequence}
               characterAction={activeScene.character_action || "sitting_bored"}
               expression={activeScene.expression || "bored"}
               shotType={shot || "medium"}

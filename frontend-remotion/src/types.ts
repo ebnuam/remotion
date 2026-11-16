@@ -1,3 +1,16 @@
+export interface ActionBeat {
+  beat_index?: number;
+  start_progress: number; // 0.0 - 1.0 relative to scene start
+  duration_progress: number; // duration fraction within scene
+  target: string; // "character" | "props" | "camera" | "environment"
+  action: string; // e.g. "reach_mug", "glance_clock", "drop_phone", "startle", "type_frantic"
+  pose?: string; // e.g. "sitting_phone", "sitting_bored", "reach_prop", "startled_hands", "sitting_typing_panic"
+  expression?: string; // e.g. "relaxed", "bored", "curious", "alert", "shocked", "panic"
+  prop_interaction?: string; // e.g. "holding_phone", "lift_mug", "phone_buzz", "laptop_alert"
+  camera_movement?: string; // e.g. "zoom_in", "pan_props", "shake", "drift"
+  description?: string;
+}
+
 export interface Scene {
   index: number;
   text: string;
@@ -11,6 +24,7 @@ export interface Scene {
   character_action?: string;
   expression?: string;
   props?: string[];
+  action_sequence?: ActionBeat[];
   foreground?: string;
   midground?: string;
   background?: string;
